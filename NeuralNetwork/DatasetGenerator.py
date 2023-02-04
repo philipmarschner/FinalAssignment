@@ -2,6 +2,7 @@ import cv2 as cv
 import time
 
 
+train_images = []
 
 # take a picture from the camera
 def takePicture():
@@ -55,5 +56,7 @@ def splitVideo(filename, outputFolder):
         success, image = vidcap.read()
         count += 1
 
-recordVideoForDuration('Pose3', 30)
-splitVideo('Pose3.avi', 'Dataset/Pose3')
+#recordVideoForDuration('Pose3', 30)
+#splitVideo('Pose3.avi', 'Dataset/Pose3')
+
+
