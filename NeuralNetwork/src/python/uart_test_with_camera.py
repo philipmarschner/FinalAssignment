@@ -46,7 +46,7 @@ def main():
 	
 	cv2.imwrite("test.jpg", img) # save image to file
 	# define serial connection
-	quit()
+
 
 	img = np.asarray((img / 255)).astype('float32')
 	ser = serial.Serial(port, 115200, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE)

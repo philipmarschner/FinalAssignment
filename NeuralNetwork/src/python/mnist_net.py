@@ -9,7 +9,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Flatten
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Activation
-from sklearn.utils import shuffle
+#from sklearn.utils import shuffle
 import sys
 
 def main():
@@ -53,8 +53,8 @@ def main():
 	test_labels = np.asarray(test_labels).astype('uint8')
 
 	## Shuffle dataset
-	train_images, train_labels = shuffle(train_images, train_labels)
-	test_images, test_labels = shuffle(test_images, test_labels)
+	#train_images, train_labels = shuffle(train_images, train_labels)
+	#test_images, test_labels = shuffle(test_images, test_labels)
 
 	## Define network structure
 	model = Sequential([
@@ -81,7 +81,10 @@ def main():
 
 
 	print("test loss, test acc: ", results)
+	dot_img_file = 'model.png'
+	tf.keras.utils.plot_model(model, to_file=dot_img_file, show_shapes=True)
 
+	quit()
 	#print(model.layers[1].weights[0].numpy().shape)
 	#print(model.layers[2].weights[0].numpy().shape)
 	#print(model.layers[3].weights[0].numpy().shape)
