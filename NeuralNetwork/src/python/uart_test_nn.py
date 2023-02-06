@@ -14,8 +14,8 @@ def main():
 
 	dims = (10,10) # dimensions of images to train/test with
 
-	randomint = random.randrange(10)
-	read_dir = os.path.expanduser("~") + '/Downloads/MNIST_Dataset_JPG/MNIST_JPG_testing/' + str(randomint) + '/'
+	randomint = random.randrange(3)
+	read_dir = '/home/jacob/workspace/embedded/FinalAssignment/NeuralNetwork/Dataset/Testing/' + str(randomint) + '/'
 	read_file = random.choice(os.listdir(read_dir)) # choose random test image
 	img = cv2.imread(os.path.join(read_dir,read_file),0) # read img as grayscale
 	img = cv2.resize(img, dims, interpolation = cv2.INTER_AREA)	# resize img to fit dims
@@ -31,6 +31,7 @@ def main():
 			#time.sleep(0.01)
 			ser.write(values) # send bytearray over UART
 
+	print("Image sent")
 	nn_res = ""
 	while "output" not in nn_res: # check if nn output received
 		nn_res = ser.readline().decode('UTF-8') # decode received bytes

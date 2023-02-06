@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;project_app/_ide/bitstream/example_plz_work.bit&apos; to &apos;u96v2_sbc_mp4d_wrapper.bit&apos;" description="Rename resource &apos;example_plz_work.bit&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="_ide/bitstream/example_plz_work.bit" name="u96v2_sbc_mp4d_wrapper.bit" stamp="1675688397869" updateReferences="true"/>
+</session>

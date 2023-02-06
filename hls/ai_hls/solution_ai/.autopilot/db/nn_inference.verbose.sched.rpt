@@ -3,7 +3,7 @@
 ================================================================
 == Vitis HLS Report for 'nn_inference'
 ================================================================
-* Date:           Sat Feb  4 13:08:04 2023
+* Date:           Sat Feb  4 14:03:43 2023
 
 * Version:        2020.2 (Build 3064766 on Wed Nov 18 09:12:47 MST 2020)
 * Project:        ai_hls
@@ -1245,7 +1245,7 @@ The critical path consists of the following:
 
  <State 14>: 6.61ns
 The critical path consists of the following:
-	'shl' operation ('shl_ln909') [246]  (0 ns)
+	'lshr' operation ('lshr_ln908') [242]  (0 ns)
 	'select' operation ('m') [248]  (0 ns)
 	'add' operation ('m') [250]  (1.47 ns)
 	'select' operation ('select_ln893') [254]  (0.451 ns)

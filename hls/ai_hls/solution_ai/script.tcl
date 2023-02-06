@@ -11,8 +11,9 @@ add_files -tb matmul_tb.cpp
 open_solution "solution_ai" -flow_target vivado
 set_part {xczu3eg-sbva484-1-i}
 create_clock -period 10 -name default
+config_export -format ip_catalog -output /home/jacob/workspace/embedded/FinalAssignment/hls/nn_inference.zip -rtl vhdl
 #source "./ai_hls/solution_ai/directives.tcl"
 csim_design
 csynth_design
 cosim_design
-export_design -format ip_catalog
+export_design -rtl vhdl -format ip_catalog -output /home/jacob/workspace/embedded/FinalAssignment/src/nn_inference.zip

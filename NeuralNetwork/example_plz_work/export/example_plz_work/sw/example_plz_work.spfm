@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdx:platform sdx:vendor="xilinx.com"
+              sdx:library="sdx"
+              sdx:name="example_plz_work"
+              sdx:version="1.0"
+              sdx:schemaVersion="1.0"
+              xmlns:sdx="http://www.xilinx.com/sdx">
+    <sdx:description>
+example_plz_work
+    </sdx:description>
+    <sdx:systemConfigurations sdx:defaultConfiguration="example_plz_work">
+        <sdx:configuration sdx:name="example_plz_work"
+                           sdx:displayName="example_plz_work"
+                           sdx:defaultProcessorGroup="standalone_domain"
+                           sdx:runtimes="cpp">
+            <sdx:description>example_plz_work</sdx:description>
+            <sdx:bootImages sdx:default="standard">
+                <sdx:image sdx:name="standard"
+                            sdx:bif="example_plz_work/boot/example_plz_work.bif"
+                            sdx:readme="example_plz_work/boot/generic.readme"
+                            sdx:qemuArguments="example_plz_work/qemu/pmu_args.txt:example_plz_work/qemu/qemu_args.txt"
+                            />
+                <sdx:image sdx:name="standalone_domain"
+                            sdx:bif="example_plz_work/boot/example_plz_work.bif"
+                            sdx:readme="example_plz_work/boot/generic.readme"
+                            sdx:qemuArguments="example_plz_work/standalone_domain/qemu/pmu_args.txt:example_plz_work/standalone_domain/qemu/qemu_args.txt"
+                            />
+            </sdx:bootImages>
+            <sdx:processorGroup sdx:name="standalone_domain"
+                                sdx:displayName="standalone on psu_cortexa53_0"
+                                sdx:cpuType="cortex-a53"
+                                sdx:cpuInstance="psu_cortexa53_0">
+                <sdx:os sdx:name="standalone"
+                        sdx:displayName="standalone"
+                        sdx:bspLibraryPaths="example_plz_work/standalone_domain/bsplib/lib"
+                        sdx:bspIncludePaths="example_plz_work/standalone_domain/bspinclude/include"
+                        sdx:bspConfig="example_plz_work/standalone_domain/system.mss"
+                />
+            </sdx:processorGroup>
+        </sdx:configuration>
+    </sdx:systemConfigurations>
+</sdx:platform>
