@@ -13,6 +13,7 @@ from tensorflow.keras.layers import Activation
 import sys
 
 def main():
+
 	args = sys.argv[1:]
 	if len(args) == 2 and args[0] == '-dataset_dir':
 		dataset_dir = str(args[1])	
@@ -53,8 +54,8 @@ def main():
 	test_labels = np.asarray(test_labels).astype('uint8')
 
 	## Shuffle dataset
-	#train_images, train_labels = shuffle(train_images, train_labels)
-	#test_images, test_labels = shuffle(test_images, test_labels)
+	train_images, train_labels = shuffle(train_images, train_labels)
+	test_images, test_labels = shuffle(test_images, test_labels)
 
 	## Define network structure
 	model = Sequential([
@@ -70,9 +71,13 @@ def main():
 
 
 	## Train network  
-	model.fit(train_images, train_labels, epochs=200, batch_size=100, validation_split = 0.1)
+	model.fit(train_images, train_labels, epochs=200, batch_size=500, validation_split = 0.1)
 
 	model.summary()
+
+	# Save model with name robot_model.h5
+	model.save('robot_model.h5')
+
 
 	start_t = time.time()
 	results = model.evaluate(test_images, test_labels, verbose=0)
@@ -84,7 +89,7 @@ def main():
 	dot_img_file = 'model.png'
 	tf.keras.utils.plot_model(model, to_file=dot_img_file, show_shapes=True)
 
-	quit()
+
 	#print(model.layers[1].weights[0].numpy().shape)
 	#print(model.layers[2].weights[0].numpy().shape)
 	#print(model.layers[3].weights[0].numpy().shape)
