@@ -37,6 +37,13 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 # To test this script, run the following commands from Vivado Tcl console:
 # source u96v2_sbc_mp4d_script.tcl
 
+
+# The design that will be created by this Tcl script contains the following 
+# module references:
+# fix_address, nn_ctrl, not_gate
+
+# Please add the sources of those modules before sourcing this Tcl script.
+
 # If there is no project opened, this script will create a
 # project, but make sure you do not have an existing project
 # <./myproj/project_1.xpr> in the current working folder.
@@ -126,11 +133,9 @@ if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
 xilinx.com:ip:axi_bram_ctrl:4.1\
 xilinx.com:ip:blk_mem_gen:8.4\
-xilinx.com:ip:axi_intc:4.1\
-xilinx.com:ip:smartconnect:1.0\
+xilinx.com:hls:nn_inference:1.0\
 xilinx.com:ip:proc_sys_reset:5.0\
-xilinx.com:ip:xlconcat:2.1\
-xilinx.com:ip:xlconstant:1.1\
+xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:zynq_ultra_ps_e:3.3\
 "
 
@@ -149,6 +154,33 @@ xilinx.com:ip:zynq_ultra_ps_e:3.3\
       set bCheckIPsPassed 0
    }
 
+}
+
+##################################################################
+# CHECK Modules
+##################################################################
+set bCheckModules 1
+if { $bCheckModules == 1 } {
+   set list_check_mods "\ 
+fix_address\
+nn_ctrl\
+not_gate\
+"
+
+   set list_mods_missing ""
+   common::send_gid_msg -ssname BD::TCL -id 2020 -severity "INFO" "Checking if the following modules exist in the project's sources: $list_check_mods ."
+
+   foreach mod_vlnv $list_check_mods {
+      if { [can_resolve_reference $mod_vlnv] == 0 } {
+         lappend list_mods_missing $mod_vlnv
+      }
+   }
+
+   if { $list_mods_missing ne "" } {
+      catch {common::send_gid_msg -ssname BD::TCL -id 2021 -severity "ERROR" "The following module(s) are not found in the project: $list_mods_missing" }
+      common::send_gid_msg -ssname BD::TCL -id 2022 -severity "INFO" "Please add source files for the missing module(s) above."
+      set bCheckIPsPassed 0
+   }
 }
 
 if { $bCheckIPsPassed != 1 } {
@@ -197,6 +229,10 @@ proc create_root_design { parentCell } {
   # Create interface ports
 
   # Create ports
+  set led_ctrl1_0 [ create_bd_port -dir O led_ctrl1_0 ]
+  set led_ctrl2_0 [ create_bd_port -dir O led_ctrl2_0 ]
+  set led_ctrl3_0 [ create_bd_port -dir O led_ctrl3_0 ]
+  set led_ctrl4_0 [ create_bd_port -dir O led_ctrl4_0 ]
 
   # Create instance: axi_bram_ctrl_0, and set properties
   set axi_bram_ctrl_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_bram_ctrl:4.1 axi_bram_ctrl_0 ]
@@ -204,45 +240,60 @@ proc create_root_design { parentCell } {
    CONFIG.SINGLE_PORT_BRAM {1} \
  ] $axi_bram_ctrl_0
 
-  # Create instance: axi_bram_ctrl_0_bram, and set properties
-  set axi_bram_ctrl_0_bram [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.4 axi_bram_ctrl_0_bram ]
+  # Create instance: blk_mem_gen_0, and set properties
+  set blk_mem_gen_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.4 blk_mem_gen_0 ]
   set_property -dict [ list \
    CONFIG.Enable_B {Use_ENB_Pin} \
    CONFIG.Memory_Type {True_Dual_Port_RAM} \
+   CONFIG.Port_A_Write_Rate {50} \
    CONFIG.Port_B_Clock {100} \
    CONFIG.Port_B_Enable_Rate {100} \
    CONFIG.Port_B_Write_Rate {50} \
+   CONFIG.Use_Byte_Write_Enable {true} \
    CONFIG.Use_RSTB_Pin {true} \
- ] $axi_bram_ctrl_0_bram
+ ] $blk_mem_gen_0
 
-  # Create instance: axi_intc_0, and set properties
-  set axi_intc_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_intc:4.1 axi_intc_0 ]
-  set_property -dict [ list \
-   CONFIG.C_IRQ_CONNECTION {1} \
- ] $axi_intc_0
+  # Create instance: fix_address_0, and set properties
+  set block_name fix_address
+  set block_cell_name fix_address_0
+  if { [catch {set fix_address_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $fix_address_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
+  # Create instance: nn_ctrl_0, and set properties
+  set block_name nn_ctrl
+  set block_cell_name nn_ctrl_0
+  if { [catch {set nn_ctrl_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $nn_ctrl_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
+  # Create instance: nn_inference_0, and set properties
+  set nn_inference_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:nn_inference:1.0 nn_inference_0 ]
 
-  # Create instance: axi_smc, and set properties
-  set axi_smc [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 axi_smc ]
-  set_property -dict [ list \
-   CONFIG.NUM_MI {2} \
-   CONFIG.NUM_SI {1} \
- ] $axi_smc
+  # Create instance: not_gate_0, and set properties
+  set block_name not_gate
+  set block_cell_name not_gate_0
+  if { [catch {set not_gate_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $not_gate_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
+  # Create instance: proc_sys_reset_0, and set properties
+  set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
 
-  # Create instance: rst_ps8_0_100M, and set properties
-  set rst_ps8_0_100M [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_ps8_0_100M ]
-
-  # Create instance: xlconcat_0, and set properties
-  set xlconcat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_0 ]
-  set_property -dict [ list \
-   CONFIG.IN4_WIDTH {1} \
-   CONFIG.NUM_PORTS {8} \
- ] $xlconcat_0
-
-  # Create instance: xlconstant_0, and set properties
-  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
-  set_property -dict [ list \
-   CONFIG.CONST_VAL {0} \
- ] $xlconstant_0
+  # Create instance: smartconnect_0, and set properties
+  set smartconnect_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 smartconnect_0 ]
 
   # Create instance: zynq_ultra_ps_e_0, and set properties
   set zynq_ultra_ps_e_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:zynq_ultra_ps_e:3.3 zynq_ultra_ps_e_0 ]
@@ -303,7 +354,6 @@ proc create_root_design { parentCell } {
    CONFIG.PSU_MIO_24_SLEW {fast} \
    CONFIG.PSU_MIO_25_DIRECTION {inout} \
    CONFIG.PSU_MIO_25_POLARITY {Default} \
-   CONFIG.PSU_MIO_25_PULLUPDOWN {pullup} \
    CONFIG.PSU_MIO_26_DIRECTION {in} \
    CONFIG.PSU_MIO_26_DRIVE_STRENGTH {12} \
    CONFIG.PSU_MIO_26_POLARITY {Default} \
@@ -345,16 +395,14 @@ proc create_root_design { parentCell } {
    CONFIG.PSU_MIO_37_POLARITY {Default} \
    CONFIG.PSU_MIO_38_DIRECTION {inout} \
    CONFIG.PSU_MIO_38_POLARITY {Default} \
-   CONFIG.PSU_MIO_39_DIRECTION {out} \
+   CONFIG.PSU_MIO_39_DIRECTION {inout} \
    CONFIG.PSU_MIO_39_DRIVE_STRENGTH {12} \
-   CONFIG.PSU_MIO_39_INPUT_TYPE {cmos} \
    CONFIG.PSU_MIO_39_POLARITY {Default} \
    CONFIG.PSU_MIO_39_SLEW {fast} \
    CONFIG.PSU_MIO_3_DIRECTION {out} \
    CONFIG.PSU_MIO_3_INPUT_TYPE {cmos} \
    CONFIG.PSU_MIO_3_POLARITY {Default} \
-   CONFIG.PSU_MIO_40_DIRECTION {out} \
-   CONFIG.PSU_MIO_40_INPUT_TYPE {cmos} \
+   CONFIG.PSU_MIO_40_DIRECTION {inout} \
    CONFIG.PSU_MIO_40_POLARITY {Default} \
    CONFIG.PSU_MIO_41_DIRECTION {inout} \
    CONFIG.PSU_MIO_41_POLARITY {Default} \
@@ -457,8 +505,8 @@ proc create_root_design { parentCell } {
    CONFIG.PSU_MIO_8_POLARITY {Default} \
    CONFIG.PSU_MIO_9_DIRECTION {inout} \
    CONFIG.PSU_MIO_9_POLARITY {Default} \
-   CONFIG.PSU_MIO_TREE_PERIPHERALS {UART 1#UART 1#UART 0#UART 0#I2C 1#I2C 1#SPI 1#GPIO0 MIO#GPIO0 MIO#SPI 1#SPI 1#SPI 1#GPIO0 MIO#SD 0#SD 0#SD 0#SD 0#GPIO0 MIO#GPIO0 MIO#GPIO0 MIO#GPIO0 MIO#SD 0#SD 0#GPIO0 MIO#SD 0#GPIO0 MIO#PMU GPI 0#DPAUX#DPAUX#DPAUX#DPAUX#GPIO1 MIO#PMU GPO 0#PMU GPO 1#PMU GPO 2#GPIO1 MIO#GPIO1 MIO#GPIO1 MIO#SPI 0#SPI 0#SPI 0#SPI 0#SPI 0#SPI 0#GPIO1 MIO#GPIO1 MIO#SD 1#SD 1#SD 1#SD 1#SD 1#SD 1#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#GPIO2 MIO#GPIO2 MIO} \
-   CONFIG.PSU_MIO_TREE_SIGNALS {txd#rxd#rxd#txd#scl_out#sda_out#sclk_out#gpio0[7]#gpio0[8]#n_ss_out[0]#miso#mosi#gpio0[12]#sdio0_data_out[0]#sdio0_data_out[1]#sdio0_data_out[2]#sdio0_data_out[3]#gpio0[17]#gpio0[18]#gpio0[19]#gpio0[20]#sdio0_cmd_out#sdio0_clk_out#gpio0[23]#sdio0_cd_n#gpio0[25]#gpi[0]#dp_aux_data_out#dp_hot_plug_detect#dp_aux_data_oe#dp_aux_data_in#gpio1[31]#gpo[0]#gpo[1]#gpo[2]#gpio1[35]#gpio1[36]#gpio1[37]#sclk_out#n_ss_out[2]#n_ss_out[1]#n_ss_out[0]#miso#mosi#gpio1[44]#gpio1[45]#sdio1_data_out[0]#sdio1_data_out[1]#sdio1_data_out[2]#sdio1_data_out[3]#sdio1_cmd_out#sdio1_clk_out#ulpi_clk_in#ulpi_dir#ulpi_tx_data[2]#ulpi_nxt#ulpi_tx_data[0]#ulpi_tx_data[1]#ulpi_stp#ulpi_tx_data[3]#ulpi_tx_data[4]#ulpi_tx_data[5]#ulpi_tx_data[6]#ulpi_tx_data[7]#ulpi_clk_in#ulpi_dir#ulpi_tx_data[2]#ulpi_nxt#ulpi_tx_data[0]#ulpi_tx_data[1]#ulpi_stp#ulpi_tx_data[3]#ulpi_tx_data[4]#ulpi_tx_data[5]#ulpi_tx_data[6]#ulpi_tx_data[7]#gpio2[76]#gpio2[77]} \
+   CONFIG.PSU_MIO_TREE_PERIPHERALS {UART 1#UART 1#UART 0#UART 0#I2C 1#I2C 1#SPI 1#GPIO0 MIO#GPIO0 MIO#SPI 1#SPI 1#SPI 1#GPIO0 MIO#SD 0#SD 0#SD 0#SD 0#GPIO0 MIO#GPIO0 MIO#GPIO0 MIO#GPIO0 MIO#SD 0#SD 0#GPIO0 MIO#SD 0#GPIO0 MIO#PMU GPI 0#DPAUX#DPAUX#DPAUX#DPAUX#GPIO1 MIO#PMU GPO 0#PMU GPO 1#PMU GPO 2#GPIO1 MIO#GPIO1 MIO#GPIO1 MIO#SPI 0#GPIO1 MIO#GPIO1 MIO#SPI 0#SPI 0#SPI 0#GPIO1 MIO#GPIO1 MIO#SD 1#SD 1#SD 1#SD 1#SD 1#SD 1#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 0#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#USB 1#GPIO2 MIO#GPIO2 MIO} \
+   CONFIG.PSU_MIO_TREE_SIGNALS {txd#rxd#rxd#txd#scl_out#sda_out#sclk_out#gpio0[7]#gpio0[8]#n_ss_out[0]#miso#mosi#gpio0[12]#sdio0_data_out[0]#sdio0_data_out[1]#sdio0_data_out[2]#sdio0_data_out[3]#gpio0[17]#gpio0[18]#gpio0[19]#gpio0[20]#sdio0_cmd_out#sdio0_clk_out#gpio0[23]#sdio0_cd_n#gpio0[25]#gpi[0]#dp_aux_data_out#dp_hot_plug_detect#dp_aux_data_oe#dp_aux_data_in#gpio1[31]#gpo[0]#gpo[1]#gpo[2]#gpio1[35]#gpio1[36]#gpio1[37]#sclk_out#gpio1[39]#gpio1[40]#n_ss_out[0]#miso#mosi#gpio1[44]#gpio1[45]#sdio1_data_out[0]#sdio1_data_out[1]#sdio1_data_out[2]#sdio1_data_out[3]#sdio1_cmd_out#sdio1_clk_out#ulpi_clk_in#ulpi_dir#ulpi_tx_data[2]#ulpi_nxt#ulpi_tx_data[0]#ulpi_tx_data[1]#ulpi_stp#ulpi_tx_data[3]#ulpi_tx_data[4]#ulpi_tx_data[5]#ulpi_tx_data[6]#ulpi_tx_data[7]#ulpi_clk_in#ulpi_dir#ulpi_tx_data[2]#ulpi_nxt#ulpi_tx_data[0]#ulpi_tx_data[1]#ulpi_stp#ulpi_tx_data[3]#ulpi_tx_data[4]#ulpi_tx_data[5]#ulpi_tx_data[6]#ulpi_tx_data[7]#gpio2[76]#gpio2[77]} \
    CONFIG.PSU_SD0_INTERNAL_BUS_WIDTH {4} \
    CONFIG.PSU_SD1_INTERNAL_BUS_WIDTH {4} \
    CONFIG.PSU_USB3__DUAL_CLOCK_ENABLE {1} \
@@ -806,9 +854,6 @@ proc create_root_design { parentCell } {
    CONFIG.PSU__GPIO1_MIO__PERIPHERAL__ENABLE {1} \
    CONFIG.PSU__GPIO2_MIO__IO {MIO 52 .. 77} \
    CONFIG.PSU__GPIO2_MIO__PERIPHERAL__ENABLE {1} \
-   CONFIG.PSU__GPIO_EMIO_WIDTH {30} \
-   CONFIG.PSU__GPIO_EMIO__PERIPHERAL__ENABLE {0} \
-   CONFIG.PSU__GPIO_EMIO__PERIPHERAL__IO {<Select>} \
    CONFIG.PSU__GT__LINK_SPEED {HBR} \
    CONFIG.PSU__GT__PRE_EMPH_LVL_4 {0} \
    CONFIG.PSU__GT__VLT_SWNG_LVL_4 {0} \
@@ -900,10 +945,8 @@ proc create_root_design { parentCell } {
    CONFIG.PSU__SD1__SLOT_TYPE {SD 2.0} \
    CONFIG.PSU__SPI0__GRP_SS0__ENABLE {1} \
    CONFIG.PSU__SPI0__GRP_SS0__IO {MIO 41} \
-   CONFIG.PSU__SPI0__GRP_SS1__ENABLE {1} \
-   CONFIG.PSU__SPI0__GRP_SS1__IO {MIO 40} \
-   CONFIG.PSU__SPI0__GRP_SS2__ENABLE {1} \
-   CONFIG.PSU__SPI0__GRP_SS2__IO {MIO 39} \
+   CONFIG.PSU__SPI0__GRP_SS1__ENABLE {0} \
+   CONFIG.PSU__SPI0__GRP_SS2__ENABLE {0} \
    CONFIG.PSU__SPI0__PERIPHERAL__ENABLE {1} \
    CONFIG.PSU__SPI0__PERIPHERAL__IO {MIO 38 .. 43} \
    CONFIG.PSU__SPI1__GRP_SS0__ENABLE {1} \
@@ -963,28 +1006,44 @@ proc create_root_design { parentCell } {
    CONFIG.PSU__USB__RESET__POLARITY {Active Low} \
    CONFIG.PSU__USE__IRQ0 {1} \
    CONFIG.PSU__USE__M_AXI_GP0 {1} \
-   CONFIG.PSU__USE__M_AXI_GP1 {0} \
+   CONFIG.PSU__USE__M_AXI_GP1 {1} \
    CONFIG.PSU__USE__M_AXI_GP2 {0} \
    CONFIG.SUBPRESET1 {Custom} \
  ] $zynq_ultra_ps_e_0
 
   # Create interface connections
-  connect_bd_intf_net -intf_net axi_bram_ctrl_0_BRAM_PORTA [get_bd_intf_pins axi_bram_ctrl_0/BRAM_PORTA] [get_bd_intf_pins axi_bram_ctrl_0_bram/BRAM_PORTA]
-  connect_bd_intf_net -intf_net axi_smc_M00_AXI [get_bd_intf_pins axi_bram_ctrl_0/S_AXI] [get_bd_intf_pins axi_smc/M00_AXI]
-  connect_bd_intf_net -intf_net axi_smc_M01_AXI [get_bd_intf_pins axi_intc_0/s_axi] [get_bd_intf_pins axi_smc/M01_AXI]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_M_AXI_HPM0_FPD [get_bd_intf_pins axi_smc/S00_AXI] [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM0_FPD]
+  connect_bd_intf_net -intf_net axi_bram_ctrl_0_BRAM_PORTA [get_bd_intf_pins axi_bram_ctrl_0/BRAM_PORTA] [get_bd_intf_pins blk_mem_gen_0/BRAM_PORTA]
+  connect_bd_intf_net -intf_net smartconnect_0_M00_AXI [get_bd_intf_pins axi_bram_ctrl_0/S_AXI] [get_bd_intf_pins smartconnect_0/M00_AXI]
+  connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_M_AXI_HPM0_FPD [get_bd_intf_pins smartconnect_0/S00_AXI] [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM0_FPD]
+  connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_M_AXI_HPM1_FPD [get_bd_intf_pins smartconnect_0/S01_AXI] [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM1_FPD]
 
   # Create port connections
-  connect_bd_net -net axi_intc_0_irq [get_bd_pins axi_intc_0/irq] [get_bd_pins xlconcat_0/In0]
-  connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins axi_bram_ctrl_0/s_axi_aresetn] [get_bd_pins axi_intc_0/s_axi_aresetn] [get_bd_pins axi_smc/aresetn] [get_bd_pins rst_ps8_0_100M/peripheral_aresetn]
-  connect_bd_net -net xlconcat_0_dout [get_bd_pins xlconcat_0/dout] [get_bd_pins zynq_ultra_ps_e_0/pl_ps_irq0]
-  connect_bd_net -net xlconstant_0_dout [get_bd_pins axi_intc_0/intr] [get_bd_pins xlconstant_0/dout]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins axi_bram_ctrl_0/s_axi_aclk] [get_bd_pins axi_bram_ctrl_0_bram/clkb] [get_bd_pins axi_intc_0/s_axi_aclk] [get_bd_pins axi_smc/aclk] [get_bd_pins rst_ps8_0_100M/slowest_sync_clk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_fpd_aclk] [get_bd_pins zynq_ultra_ps_e_0/pl_clk0]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0 [get_bd_pins rst_ps8_0_100M/ext_reset_in] [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0]
+  connect_bd_net -net blk_mem_gen_0_doutb [get_bd_pins blk_mem_gen_0/doutb] [get_bd_pins nn_inference_0/input_img_q0]
+  connect_bd_net -net blk_mem_gen_0_rstb_busy [get_bd_pins blk_mem_gen_0/rstb_busy] [get_bd_pins nn_ctrl_0/rstb_busy]
+  connect_bd_net -net fix_address_0_addr_out [get_bd_pins fix_address_0/addr_out] [get_bd_pins nn_ctrl_0/i_BRAM_addr]
+  connect_bd_net -net nn_ctrl_0_ap_rst [get_bd_pins nn_ctrl_0/ap_rst] [get_bd_pins not_gate_0/i_in]
+  connect_bd_net -net nn_ctrl_0_ap_start [get_bd_pins nn_ctrl_0/ap_start] [get_bd_pins nn_inference_0/ap_start]
+  connect_bd_net -net nn_ctrl_0_led_ctrl1 [get_bd_ports led_ctrl1_0] [get_bd_pins nn_ctrl_0/led_ctrl1]
+  connect_bd_net -net nn_ctrl_0_led_ctrl2 [get_bd_ports led_ctrl2_0] [get_bd_pins nn_ctrl_0/led_ctrl2]
+  connect_bd_net -net nn_ctrl_0_led_ctrl3 [get_bd_ports led_ctrl3_0] [get_bd_pins nn_ctrl_0/led_ctrl3]
+  connect_bd_net -net nn_ctrl_0_led_ctrl4 [get_bd_ports led_ctrl4_0] [get_bd_pins nn_ctrl_0/led_ctrl4]
+  connect_bd_net -net nn_ctrl_0_o_BRAM_addr [get_bd_pins blk_mem_gen_0/addrb] [get_bd_pins nn_ctrl_0/o_BRAM_addr]
+  connect_bd_net -net nn_ctrl_0_o_BRAM_ce [get_bd_pins blk_mem_gen_0/enb] [get_bd_pins nn_ctrl_0/o_BRAM_ce]
+  connect_bd_net -net nn_ctrl_0_o_BRAM_din [get_bd_pins blk_mem_gen_0/dinb] [get_bd_pins nn_ctrl_0/o_BRAM_din]
+  connect_bd_net -net nn_ctrl_0_o_BRAM_wr [get_bd_pins blk_mem_gen_0/web] [get_bd_pins nn_ctrl_0/o_BRAM_wr]
+  connect_bd_net -net nn_inference_0_ap_done [get_bd_pins nn_ctrl_0/ap_done] [get_bd_pins nn_inference_0/ap_done]
+  connect_bd_net -net nn_inference_0_ap_idle [get_bd_pins nn_ctrl_0/ap_idle] [get_bd_pins nn_inference_0/ap_idle]
+  connect_bd_net -net nn_inference_0_ap_ready [get_bd_pins nn_ctrl_0/ap_ready] [get_bd_pins nn_inference_0/ap_ready]
+  connect_bd_net -net nn_inference_0_ap_return [get_bd_pins nn_ctrl_0/nn_res_in] [get_bd_pins nn_inference_0/ap_return]
+  connect_bd_net -net nn_inference_0_input_img_address0 [get_bd_pins fix_address_0/addr_in] [get_bd_pins nn_inference_0/input_img_address0]
+  connect_bd_net -net nn_inference_0_input_img_ce0 [get_bd_pins nn_ctrl_0/i_BRAM_ce] [get_bd_pins nn_inference_0/input_img_ce0]
+  connect_bd_net -net not_gate_0_o_out [get_bd_pins nn_inference_0/ap_rst] [get_bd_pins not_gate_0/o_out]
+  connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins axi_bram_ctrl_0/s_axi_aresetn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn] [get_bd_pins smartconnect_0/aresetn]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins axi_bram_ctrl_0/s_axi_aclk] [get_bd_pins blk_mem_gen_0/clkb] [get_bd_pins nn_ctrl_0/i_Clk] [get_bd_pins nn_inference_0/ap_clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins smartconnect_0/aclk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_fpd_aclk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm1_fpd_aclk] [get_bd_pins zynq_ultra_ps_e_0/pl_clk0]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0 [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0]
 
   # Create address segments
   assign_bd_address -offset 0xA0000000 -range 0x00002000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs axi_bram_ctrl_0/S_AXI/Mem0] -force
-  assign_bd_address -offset 0xA0010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs axi_intc_0/S_AXI/Reg] -force
 
 
   # Restore current instance
@@ -992,8 +1051,6 @@ proc create_root_design { parentCell } {
 
   # Create PFM attributes
   set_property PFM_NAME {sdu.dk/diii:diii:u96v2_sbc_mp4d:1.0} [get_files [current_bd_design].bd]
-  set_property PFM.AXI_PORT {  M_AXI_HPM1_FPD {memport "M_AXI_GP"}  S_AXI_HPC0_FPD {memport "S_AXI_HPC" sptag "HPC0" memory "zynq_ultra_ps_e_0 HPC0_DDR_LOW"}  S_AXI_HPC1_FPD {memport "S_AXI_HPC" sptag "HPC1" memory "zynq_ultra_ps_e_0 HPC1_DDR_LOW"}  S_AXI_HP0_FPD {memport "S_AXI_HP" sptag "HP0" memory "zynq_ultra_ps_e_0 HP0_DDR_LOW"}  S_AXI_HP1_FPD {memport "S_AXI_HP" sptag "HP1" memory "zynq_ultra_ps_e_0 HP1_DDR_LOW"}  S_AXI_HP2_FPD {memport "S_AXI_HP" sptag "HP2" memory "zynq_ultra_ps_e_0 HP2_DDR_LOW"}  S_AXI_HP3_FPD {memport "S_AXI_HP" sptag "HP3" memory "zynq_ultra_ps_e_0 HP3_DDR_LOW"}  } [get_bd_cells /zynq_ultra_ps_e_0]
-  set_property PFM.CLOCK {pl_clk0 {id "0" is_default "true" proc_sys_reset "/rst_ps8_0_100M" status "fixed" freq_hz "100000000"}} [get_bd_cells /zynq_ultra_ps_e_0]
 
 
   validate_bd_design
