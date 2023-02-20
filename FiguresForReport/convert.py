@@ -1,6 +1,6 @@
 import cv2 as cv
 
-name = 'pose3'
+name = 'pose2'
 
 # convert image to gray
 img = cv.imread(name + '.jpg')
